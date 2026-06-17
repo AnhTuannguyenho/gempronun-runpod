@@ -19,8 +19,8 @@ WORKDIR /app
 # torch CUDA 12.4 (cài riêng từ index pytorch để khớp cu124)
 RUN pip install torch --index-url https://download.pytorch.org/whl/cu124
 
-# Phần còn lại của engine + RunPod SDK
-RUN pip install 'numpy<2' faster-whisper transformers flask soundfile phonemizer runpod
+# Phần còn lại của engine + RunPod SDK + Kokoro TTS
+RUN pip install 'numpy<2' faster-whisper transformers flask soundfile phonemizer runpod 'kokoro>=0.9.4'
 
 COPY app.py handler.py /app/
 
@@ -37,7 +37,14 @@ from transformers import Wav2Vec2Processor, Wav2Vec2ForCTC
 W = "facebook/wav2vec2-lv-60-espeak-cv-ft"
 Wav2Vec2Processor.from_pretrained(W)                         # cache wav2vec2
 Wav2Vec2ForCTC.from_pretrained(W)
-print("models cached into /models")
+print("scoring models cached")
+# Kokoro TTS: tải model 82M + vài giọng phổ biến vào cache (CPU lúc build)
+from kokoro import KPipeline
+for lc in ("a", "b"):                                        # US + UK English
+    p = KPipeline(lang_code=lc)
+    for v in (["af_heart", "am_adam"] if lc == "a" else ["bf_emma", "bm_george"]):
+        list(p("hello world", voice=v))                      # trigger tải model+giọng
+print("kokoro cached")
 PY
 
 ENV ASR_DEVICE=cuda \

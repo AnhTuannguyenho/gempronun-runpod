@@ -498,6 +498,52 @@ def score_ep():
         if os.path.isdir(tmpd): os.rmdir(tmpd)
 
 
+# ===== /tts — Kokoro TTS (nạp model lười, không làm chậm cold-start chấm điểm) =====
+_kokoro = {}
+_kokoro_lock = threading.Lock()
+
+def _kokoro_pipe(lang="a"):
+    if lang not in _kokoro:
+        with _kokoro_lock:
+            if lang not in _kokoro:
+                from kokoro import KPipeline
+                _kokoro[lang] = KPipeline(lang_code=lang)
+    return _kokoro[lang]
+
+
+@app.post("/tts")
+def tts():
+    import io as _io, base64 as _b64
+    text = (request.form.get("text", "") or "").strip()
+    voice = (request.form.get("voice", "") or "af_heart").strip()
+    lang = ((request.form.get("lang", "") or "a").strip()[:1]) or "a"
+    try:
+        speed = float(request.form.get("speed", "1") or "1")
+    except Exception:
+        speed = 1.0
+    if not text:
+        return jsonify(ok=False, err="no text"), 400
+    text = text[:1000]
+    try:
+        t0 = time.time()
+        pipe = _kokoro_pipe(lang)
+        chunks = []
+        with _lock:  # 1 GPU — tuần tự như phần chấm
+            for _g, _p, audio in pipe(text, voice=voice, speed=speed):
+                a = audio.detach().cpu().numpy() if hasattr(audio, "detach") else np.asarray(audio)
+                chunks.append(a)
+        if not chunks:
+            return jsonify(ok=False, err="empty audio"), 200
+        wav = np.concatenate(chunks).astype(np.float32)
+        buf = _io.BytesIO()
+        sf.write(buf, wav, 24000, format="WAV", subtype="PCM_16")
+        return jsonify(ok=True, audio_b64=_b64.b64encode(buf.getvalue()).decode(),
+                       sr=24000, format="wav", voice=voice,
+                       dur=round(len(wav) / 24000.0, 2), took=round(time.time() - t0, 2))
+    except Exception as e:
+        return jsonify(ok=False, err=str(e)), 500
+
+
 if __name__ == "__main__":
     _bind = os.environ.get("ASR_BIND", "127.0.0.1")
     _crt = os.environ.get("ASR_TLS_CERT"); _key = os.environ.get("ASR_TLS_KEY")

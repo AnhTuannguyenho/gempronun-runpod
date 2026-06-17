@@ -40,6 +40,7 @@ ROUTE_MAP = {
     "grade_ph": "/grade_ph",
     "transcribe": "/transcribe",
     "pron": "/pron",
+    "tts": "/tts",
     "health": "/health",
 }
 
@@ -53,6 +54,17 @@ def handler(job):
 
     if route == "health":
         return _client.get("/health").get_json()
+
+    if route == "tts":
+        # TTS không cần audio đầu vào — chỉ text + voice + lang + speed
+        data = {}
+        for k in ("text", "voice", "lang", "speed"):
+            v = inp.get(k)
+            if v is not None:
+                data[k] = str(v)
+        resp = _client.post("/tts", data=data)
+        out = resp.get_json(silent=True)
+        return out if out is not None else {"ok": False, "err": "non-json", "status": resp.status_code}
 
     b64 = inp.get("audio_b64") or inp.get("audio")
     if not b64:
