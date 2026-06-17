@@ -39,7 +39,7 @@ Tự động qua API (nhanh nhất):
 ```bash
 export RUNPOD_API_KEY=...                         # Settings → API Keys
 export IMAGE=docker.io/<user>/gempronun-runpod:1
-python deploy_runpod_api.py 4tzogl7txqk2ax        # đọc template + PATCH image
+python deploy_runpod_api.py 2gmiijirwfd90y        # đọc template + PATCH image
 ```
 Hoặc thủ công: Console → endpoint → template → **Container Image** = image trên → Save (rolling release).
 
@@ -52,7 +52,7 @@ Hoặc thủ công: Console → endpoint → template → **Container Image** = 
 ```bash
 RUNPOD_API_KEY=... python client_example.py path/to/test.wav "apple" score
 ```
-- URL đồng bộ: `POST https://api.runpod.ai/v2/4tzogl7txqk2ax/runsync`
+- URL đồng bộ: `POST https://api.runpod.ai/v2/2gmiijirwfd90y/runsync`
 - Header: `Authorization: Bearer <RUNPOD_API_KEY>`
 - Body: `{"input": {...}}` → trả `{"status":"COMPLETED","output":{...}}`
 

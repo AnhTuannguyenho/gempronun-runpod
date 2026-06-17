@@ -4,7 +4,7 @@
 # với header Authorization: Bearer <RUNPOD_API_KEY> và body {"input": {...}}.
 import base64, os, sys, requests
 
-ENDPOINT_ID = os.environ.get("RUNPOD_ENDPOINT_ID", "4tzogl7txqk2ax")
+ENDPOINT_ID = os.environ.get("RUNPOD_ENDPOINT_ID", "2gmiijirwfd90y")
 API_KEY     = os.environ["RUNPOD_API_KEY"]
 audio_path  = sys.argv[1]
 text        = sys.argv[2] if len(sys.argv) > 2 else "apple"
