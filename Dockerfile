@@ -19,8 +19,9 @@ WORKDIR /app
 # torch CUDA 12.4 (cài riêng từ index pytorch để khớp cu124)
 RUN pip install torch --index-url https://download.pytorch.org/whl/cu124
 
-# Phần còn lại của engine + RunPod SDK + Kokoro TTS
-RUN pip install 'numpy<2' faster-whisper transformers flask soundfile phonemizer runpod 'kokoro>=0.9.4'
+# Phần còn lại của engine + RunPod SDK + Kokoro TTS (kèm misaki[en] + spacy en model)
+RUN pip install 'numpy<2' faster-whisper transformers flask soundfile phonemizer runpod 'kokoro>=0.9.4' 'misaki[en]' \
+    && python -m spacy download en_core_web_sm
 
 COPY app.py handler.py /app/
 
