@@ -1,0 +1,9 @@
+# Tham khảo — bản chính cài trong Dockerfile (torch dùng index CUDA riêng).
+torch                 # cài qua --index-url https://download.pytorch.org/whl/cu124
+numpy<2
+faster-whisper
+transformers
+flask
+soundfile
+phonemizer
+runpod                # RunPod Serverless SDK (handler)

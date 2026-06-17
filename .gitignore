@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+test_input.json
+*.wav
+*.mp3
+*.webm
+.runpod_key

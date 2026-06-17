@@ -1,0 +1,8 @@
+README.md
+client_example.py
+make_test_input.py
+test_input.json
+*.wav
+*.mp3
+*.webm
+__pycache__/
