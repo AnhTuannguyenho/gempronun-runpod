@@ -486,8 +486,27 @@ def score_ep():
                 score = round(4.0 + 2.0 * best, 1); status = "sub"
             else:
                 score = round(3.0 * best, 1); status = "sub"
+        # ===== Fluency + completeness (chỉ cho CÂU) — phục vụ IELTS Speaking =====
+        fluency = None; wpm = None; completeness = None; criteria = None
+        if ntoks > 1 and transcript:
+            dur = float(w.get("duration") or 0)
+            hw = len(_dnorm(transcript).split())
+            wpm = round(hw / dur * 60) if dur > 0 else 0
+            # đường cong fluency theo tốc độ nói: tối ưu ~110–170 wpm
+            if wpm <= 0:
+                fluency = 0.0
+            elif 110 <= wpm <= 170:
+                fluency = 10.0
+            elif wpm < 110:
+                fluency = round(max(3.0, 10.0 - (110 - wpm) / 12.0), 1)
+            else:
+                fluency = round(max(4.0, 10.0 - (wpm - 170) / 15.0), 1)
+            completeness = round(min(1.0, hw / max(1, len(tnorm.split()))) * 100)
+            criteria = {"accuracy": (None if pacc is None else round(pacc * 100)),
+                        "fluency": fluency, "completeness": completeness, "wpm": wpm}
         return jsonify(ok=True, score=score, status=status, band=_band(score),
                        heard=transcript, marks=marks, phones=phones,
+                       fluency=fluency, wpm=wpm, completeness=completeness, criteria=criteria,
                        took=round(time.time() - t0, 2))
     except subprocess.CalledProcessError:
         return jsonify(ok=False, err="audio decode failed"), 400
