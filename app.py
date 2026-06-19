@@ -498,64 +498,6 @@ def score_ep():
         if os.path.isdir(tmpd): os.rmdir(tmpd)
 
 
-# ===== /tts — Kokoro TTS (nạp model lười, không làm chậm cold-start chấm điểm) =====
-# Giọng phổ biến: a*=American, b*=British; *f*=nữ, *m*=nam
-_TTS_VOICES = ["af_heart", "af_bella", "af_nicole", "af_sarah", "af_sky",
-               "am_adam", "am_michael", "bf_emma", "bf_isabella", "bm_george", "bm_lewis"]
-_kokoro = {}
-_kokoro_lock = threading.Lock()
-
-def _kokoro_pipe(lang):
-    if lang not in _kokoro:
-        with _kokoro_lock:
-            if lang not in _kokoro:
-                from kokoro import KPipeline
-                _kokoro[lang] = KPipeline(lang_code=lang)
-    return _kokoro[lang]
-
-
-@app.post("/tts")
-def tts():
-    import re as _re2, base64 as _b64
-    text = (request.form.get("text", "") or "").strip()[:2000]
-    voice = _re2.sub(r"[^a-z_]", "", (request.form.get("voice", "") or "af_heart").lower()) or "af_heart"
-    if voice not in _TTS_VOICES:
-        voice = "af_heart"
-    fmt = (request.form.get("format", "mp3") or "mp3").lower()
-    try:
-        speed = float(request.form.get("speed", "1") or "1")
-    except Exception:
-        speed = 1.0
-    if not text:
-        return jsonify(ok=False, err="no text"), 400
-    lang = 'b' if voice[:1] == 'b' else 'a'   # bf_/bm_ -> British
-    try:
-        t0 = time.time()
-        pipe = _kokoro_pipe(lang)
-        chunks = []
-        with _lock:  # 1 GPU — tuần tự như phần chấm
-            for _g, _p, audio in pipe(text, voice=voice, speed=speed):
-                a = audio.detach().cpu().numpy() if hasattr(audio, "detach") else np.asarray(audio)
-                chunks.append(a)
-        if not chunks:
-            return jsonify(ok=False, err="empty audio"), 200
-        wav = np.concatenate(chunks).astype(np.float32)
-        with tempfile.TemporaryDirectory() as d:
-            wpath = os.path.join(d, "a.wav")
-            sf.write(wpath, wav, 24000, subtype="PCM_16")
-            if fmt == "wav":
-                data = open(wpath, "rb").read(); out_fmt = "wav"
-            else:
-                mpath = os.path.join(d, "a.mp3")
-                subprocess.run(["ffmpeg", "-y", "-i", wpath, "-b:a", "96k", mpath],
-                               check=True, capture_output=True)
-                data = open(mpath, "rb").read(); out_fmt = "mp3"
-        return jsonify(ok=True, audio_b64=_b64.b64encode(data).decode(), format=out_fmt,
-                       voice=voice, dur=round(len(wav) / 24000.0, 2), took=round(time.time() - t0, 2))
-    except Exception as e:
-        return jsonify(ok=False, err=str(e)), 500
-
-
 if __name__ == "__main__":
     _bind = os.environ.get("ASR_BIND", "127.0.0.1")
     _crt = os.environ.get("ASR_TLS_CERT"); _key = os.environ.get("ASR_TLS_KEY")

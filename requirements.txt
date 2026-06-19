@@ -7,4 +7,3 @@ flask
 soundfile
 phonemizer
 runpod                # RunPod Serverless SDK (handler)
-kokoro>=0.9.4         # TTS (route "tts") — StyleTTS2 82M, dùng espeak-ng + torch GPU
