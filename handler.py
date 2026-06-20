@@ -77,27 +77,5 @@ def handler(job):
     return out
 
 
-def _warmup():
-    """Chạy 1 inference GIẢ lúc worker khởi động để 'làm nóng' GPU kernel (cuDNN/CTranslate2),
-    tránh lượt chấm THẬT đầu tiên sau cold-start bị lỗi/null."""
-    try:
-        import io as _io, wave, struct, math
-        sr = 16000
-        n = int(sr * 1.3)
-        b = _io.BytesIO()
-        wf = wave.open(b, "wb")
-        wf.setnchannels(1); wf.setsampwidth(2); wf.setframerate(sr)
-        wf.writeframes(b"".join(struct.pack("<h", int(2500 * math.sin(2 * math.pi * 200 * i / sr))) for i in range(n)))
-        wf.close()
-        for route, payload in (("/score", {"text": "warm up test sentence"}),):
-            d = {"file": (_io.BytesIO(b.getvalue()), "w.wav")}
-            d.update(payload)
-            _client.post(route, data=d, content_type="multipart/form-data")
-        print("[warmup] scoring path warmed (GPU kernels ready)", flush=True)
-    except Exception as e:
-        print("[warmup] skipped:", e, flush=True)
-
-
 if __name__ == "__main__":
-    _warmup()
     runpod.serverless.start({"handler": handler})
